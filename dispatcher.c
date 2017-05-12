@@ -6,8 +6,10 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define SOCK_PATH "bs_socket"
+#define NUM_THREAD 2
 
 struct socket_list {
     int s;
@@ -48,6 +50,20 @@ void broadcast_message(struct socket_list * root, char * str)
     }
 }
 
+void *write_message(void *ptr)
+{
+    struct socket_list * clients = (struct socket_list *)ptr;
+
+    char msg[100];
+    while(1) {
+        memset(msg, '\0', sizeof(msg));
+        fgets(msg, sizeof(msg), stdin);
+        broadcast_message(clients, msg);
+    }
+
+    pthread_exit(NULL);
+}
+
 int main(void)
 {
 
@@ -81,9 +97,17 @@ int main(void)
 
     struct socket_list * clients = malloc(sizeof(struct socket_list));
 
+    pthread_t thread1;
+    int iret1;
+
+    iret1 = pthread_create( &thread1, NULL, write_message, (void *) clients);
+    if(iret1)
+    {
+        perror("Error - pthread_create\n");
+        exit(1);
+    }
+
     for(;;) {
-		int done, n;
-        n = 0;
 		printf("Waiting for a connection...\n");
 		t = sizeof(remote);
 		if ((s2 = accept(s, (struct sockaddr *)&remote, &t)) == -1) {
@@ -93,16 +117,11 @@ int main(void)
 
         clients = add_to_list(clients, s2);
 
-        char buf[100];
-        fgets(buf, sizeof(buf), stdin);
-        if(buf[0] == 'q') {
-            break;
-        }
     }
-    char msg[] = "hello everyone\n";
-    broadcast_message(clients, msg);
 
     //Make sure you get closes or shutdowns working here   
-    
+    //Need to write a function that goes through the linked lists
+    pthread_exit(NULL);
+
 }
         
