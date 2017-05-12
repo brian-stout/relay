@@ -9,7 +9,100 @@
 
 #define SOCK_PATH "bs_socket"
 
+struct socket_list {
+    int s;
+    struct socket_list *next;
+};
+
+struct socket_list * add_to_list(struct socket_list * root, int socket)
+{
+    struct socket_list * newNode = malloc(sizeof(struct socket_list));
+    newNode->s = socket;
+    newNode->next = NULL;
+
+    if (root == NULL)
+    {
+        root = newNode;                
+    }
+    else
+    {
+        struct socket_list * cursor = root;
+        while (cursor->next != NULL)
+        {
+            cursor = cursor->next;
+        }
+        cursor->next = newNode;
+    }
+
+    return root;
+}
+
+void broadcast_message(struct socket_list * root, char * str)
+{
+
+    struct socket_list * cursor = root;
+    while (cursor)
+    {
+        send(cursor->s, str, strlen(str), 0);
+        cursor = cursor->next;
+    }
+}
+
 int main(void)
 {
+
+    int s=-1, s2=-1;
+    struct sockaddr_un local, remote;
+    int len, return_val, t;
+
+    s = socket(AF_UNIX, SOCK_STREAM, 0);
+    if(s < 0) {
+        perror("Socket()\n");
+        exit(1);
+    }
+
+    local.sun_family = AF_UNIX;
+    strcpy(local.sun_path, SOCK_PATH);
+    unlink(local.sun_path);
+    len = strlen(local.sun_path) + sizeof(local.sun_family);
+
+    return_val = bind(s, (struct sockaddr *)&local, len);
+    if(return_val < 0) {
+        perror("bind()\n");
+        exit(1);
+    }
+
+    //Replace 5 with actual named value later
+    return_val = listen(s, 5);
+    if(return_val < 0) {
+        perror("listen()\n");
+        exit(1);
+    }
+
+    struct socket_list * clients = malloc(sizeof(struct socket_list));
+
+    for(;;) {
+		int done, n;
+        n = 0;
+		printf("Waiting for a connection...\n");
+		t = sizeof(remote);
+		if ((s2 = accept(s, (struct sockaddr *)&remote, &t)) == -1) {
+			perror("accept");
+			exit(1);
+		}
+
+        clients = add_to_list(clients, s2);
+
+        char buf[100];
+        fgets(buf, sizeof(buf), stdin);
+        if(buf[0] == 'q') {
+            break;
+        }
+    }
+    char msg[] = "hello everyone\n";
+    broadcast_message(clients, msg);
+
+    //Make sure you get closes or shutdowns working here   
+    
 }
         
