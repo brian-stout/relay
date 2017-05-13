@@ -36,8 +36,7 @@ int main(void)
     int iret1;
 
     iret1 = pthread_create( &thread1, NULL, write_message, (void *) clients);
-    if(iret1)
-    {
+    if(iret1) {
         perror("Error - pthread_create\n");
         exit(1);
     }
@@ -46,8 +45,7 @@ int main(void)
     int iret2;
 
     iret2 = pthread_create(&thread2, NULL, accept_connections, (void *) clients);
-    if(iret2)
-    {
+    if(iret2) {
         perror("Error - pthread_create on 2\n");
         exit(1);
     }
@@ -67,12 +65,9 @@ struct socket_list * add_to_list(struct socket_list * root, int socket)
     newNode->s = socket;
     newNode->next = NULL;
 
-    if (root == NULL)
-    {
+    if(root == NULL) {
         root = newNode;                
-    }
-    else
-    {
+    } else {
         struct socket_list * cursor = root;
         while (cursor->next != NULL)
         {
@@ -87,7 +82,7 @@ struct socket_list * add_to_list(struct socket_list * root, int socket)
 void broadcast_message(struct socket_list * root, char * str)
 {
     struct socket_list * cursor = root;
-    while (cursor)
+    while(cursor)
     {
         send(cursor->s, str, strlen(str), 0);
         cursor = cursor->next;
@@ -100,12 +95,12 @@ void *write_message(void *ptr)
 
     char * line = NULL;
     char msg[100];
-    while(1) {
+    while(true)
+    {
 
         memset(msg, '\0', sizeof(msg));
         line = fgets(msg, sizeof(msg), stdin);
-        if(!line)
-        {
+        if(!line) {
             break;
         }
         if(clients) {
@@ -161,9 +156,10 @@ void *accept_connections(void *ptr)
 
     struct socket_list * clients = (struct socket_list *)ptr;
 
-    for(;;) {
+    for(;;)
+    {
 		t = sizeof(remote);
-		if ((s2 = accept(s, (struct sockaddr *)&remote, &t)) == -1) {
+		if((s2 = accept(s, (struct sockaddr *)&remote, &t)) == -1) {
 			perror("accept");
 			exit(1);
 		}
