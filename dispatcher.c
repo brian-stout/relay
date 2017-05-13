@@ -17,11 +17,28 @@ struct socket_list {
     struct socket_list *next;
 };
 
-void signal_handler(int signal);
+/**	add_to_list() is responsible for adding the socket numbers to a linked list
+*/
 struct socket_list * add_to_list(struct socket_list * root, int socket);
+
+/**	broadcast_message() iterates through all the sockets in the socket list
+*       and sends the str in the argument to all the sockets using send
+*/
 void broadcast_message(struct socket_list * root, char * str);
+
+/**	write_message() is a threaded function which loops through asking for input
+*       from stdin, it sends the string to pointer used by broadcast
+*/
 void *write_message(void *ptr);
+
+/**	deconstruct_socket_list() goes through the linked list and closes the sockets
+*       as well as free's the memory
+*/
 void deconstruct_socket_list(struct socket_list* root);
+
+/**	accept_connections() is a threaded function which makes socket connections and adds
+*       them to the linked list
+*/
 void *accept_connections(void *ptr);
 
 int main(void)
@@ -55,6 +72,7 @@ int main(void)
     //Make sure you get closes or shutdowns working here
     deconstruct_socket_list(clients);
     //Need to write a function that goes through the linked lists
+    free(clients);
     pthread_exit(NULL);
 
 }
