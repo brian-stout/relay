@@ -39,7 +39,7 @@ int main(void)
     while(1) {
         if ((t=recv(s, str, 100, 0)) > 0) {
             str[t] = '\0';
-            printf("echo> %s", str);
+            printf("%s", str);
         } else {
             if (t < 0) perror("recv");
             else printf("Server closed connection\n");
