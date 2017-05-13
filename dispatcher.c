@@ -202,4 +202,3 @@ void *accept_connections(void *ptr)
     }
     pthread_exit(NULL);
 }
-
