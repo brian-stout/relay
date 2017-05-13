@@ -77,9 +77,11 @@ int main(void)
 
     //Runs through the linked lists and frees up memory
     deconstruct_socket_list(clients);
-
-    free(clients);
     pthread_exit(NULL);
+    if(clients) {
+        free(clients);
+    }
+
 
 }
 
