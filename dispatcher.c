@@ -10,53 +10,27 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define SOCK_PATH "bs_socket"
+#define SOCK_PATH "/tmp/.muffins_socket"
 
 struct socket_list {
     int s;
     struct socket_list *next;
 };
 
-volatile bool got_EOF = false;
-
 void signal_handler(int signal);
 struct socket_list * add_to_list(struct socket_list * root, int socket);
 void broadcast_message(struct socket_list * root, char * str);
 void *write_message(void *ptr);
 void deconstruct_socket_list(struct socket_list* root);
+void *accept_connections(void *ptr);
 
 int main(void)
 {
-    int s=-1, s2=-1;
-    struct sockaddr_un local, remote;
-    int len, return_val, t;
 
-    s = socket(AF_UNIX, SOCK_STREAM, 0);
-    if(s < 0) {
-        perror("Socket()\n");
-        exit(1);
-    }
-
-    local.sun_family = AF_UNIX;
-    strcpy(local.sun_path, SOCK_PATH);
-    unlink(local.sun_path);
-    len = strlen(local.sun_path) + sizeof(local.sun_family);
-
-    return_val = bind(s, (struct sockaddr *)&local, len);
-    if(return_val < 0) {
-        perror("bind()\n");
-        exit(1);
-    }
-
-    //Replace 5 with actual named value later
-    return_val = listen(s, 5);
-    if(return_val < 0) {
-        perror("listen()\n");
-        exit(1);
-    }
 
     struct socket_list * clients = malloc(sizeof(struct socket_list));
     clients->next = NULL;
+    clients->s = 0;
 
     pthread_t thread1;
     int iret1;
@@ -68,24 +42,18 @@ int main(void)
         exit(1);
     }
 
-    for(;;) {
-        if(got_EOF)
-        {
-            break;
-        }
+    pthread_t thread2;
+    int iret2;
 
-		printf("Waiting for a connection...\n");
-		t = sizeof(remote);
-		if ((s2 = accept(s, (struct sockaddr *)&remote, &t)) == -1) {
-			perror("accept");
-			exit(1);
-		}
-
-        clients = add_to_list(clients, s2);
-
+    iret2 = pthread_create(&thread2, NULL, accept_connections, (void *) clients);
+    if(iret2)
+    {
+        perror("Error - pthread_create on 2\n");
+        exit(1);
     }
 
     pthread_join(thread1, NULL);
+    pthread_cancel(thread2);
     //Make sure you get closes or shutdowns working here
     deconstruct_socket_list(clients);
     //Need to write a function that goes through the linked lists
@@ -138,10 +106,11 @@ void *write_message(void *ptr)
         line = fgets(msg, sizeof(msg), stdin);
         if(!line)
         {
-            got_EOF = true;
             break;
         }
-        broadcast_message(clients, msg);
+        if(clients) {
+            broadcast_message(clients, msg);
+        }
     }
 
     pthread_exit(NULL);
@@ -159,3 +128,49 @@ void deconstruct_socket_list(struct socket_list* root)
         free(cursor);
     }   
 }
+
+void *accept_connections(void *ptr)
+{
+    int s=-1, s2=-1;
+    struct sockaddr_un local, remote;
+    int len, return_val, t;
+
+    s = socket(AF_UNIX, SOCK_STREAM, 0);
+    if(s < 0) {
+        perror("Socket()\n");
+        exit(1);
+    }
+
+    local.sun_family = AF_UNIX;
+    strcpy(local.sun_path, SOCK_PATH);
+    unlink(local.sun_path);
+    len = strlen(local.sun_path) + sizeof(local.sun_family);
+
+    return_val = bind(s, (struct sockaddr *)&local, len);
+    if(return_val < 0) {
+        perror("bind()\n");
+        exit(1);
+    }
+
+    //Replace 5 with actual named value later
+    return_val = listen(s, 5);
+    if(return_val < 0) {
+        perror("listen()\n");
+        exit(1);
+    }
+
+    struct socket_list * clients = (struct socket_list *)ptr;
+
+    for(;;) {
+		t = sizeof(remote);
+		if ((s2 = accept(s, (struct sockaddr *)&remote, &t)) == -1) {
+			perror("accept");
+			exit(1);
+		}
+
+        clients = add_to_list(clients, s2);
+
+    }
+    pthread_exit(NULL);
+}
+

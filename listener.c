@@ -11,7 +11,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#define SOCK_PATH "bs_socket"
+#define SOCK_PATH "/tmp/.muffins_socket"
 
 int main(void)
 {
@@ -23,8 +23,6 @@ int main(void)
         perror("socket");
         exit(1);
     }
-
-    printf("Trying to connect...\n");
 
     remote.sun_family = AF_UNIX;
     strcpy(remote.sun_path, SOCK_PATH);
