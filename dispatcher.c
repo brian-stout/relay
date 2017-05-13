@@ -11,6 +11,7 @@
 #include <pthread.h>
 
 #define SOCK_PATH "/tmp/.muffins_socket"
+#define MAX_CONNECTIONS 20
 
 struct socket_list {
     int s;
@@ -110,6 +111,7 @@ void broadcast_message(struct socket_list * root, char * str)
     struct socket_list * cursor = root;
     while(cursor)
     {
+        //Send message to each socket
         send(cursor->s, str, strlen(str), 0);
         cursor = cursor->next;
     }
@@ -126,6 +128,7 @@ void *write_message(void *ptr)
 
         memset(msg, '\0', sizeof(msg));
         line = fgets(msg, sizeof(msg), stdin);
+        //If you get an EOF, break out and exit thread
         if(!line) {
             break;
         }
@@ -156,12 +159,14 @@ void *accept_connections(void *ptr)
     struct sockaddr_un local, remote;
     int len, return_val, t;
 
+    //Create the main socket
     s = socket(AF_UNIX, SOCK_STREAM, 0);
     if(s < 0) {
         perror("Socket()\n");
         exit(1);
     }
 
+    //Socket settings
     local.sun_family = AF_UNIX;
     strcpy(local.sun_path, SOCK_PATH);
     unlink(local.sun_path);
@@ -173,15 +178,17 @@ void *accept_connections(void *ptr)
         exit(1);
     }
 
-    //Replace 5 with actual named value later
-    return_val = listen(s, 5);
+    //Set up max connections
+    return_val = listen(s, MAX_CONNECTIONS);
     if(return_val < 0) {
         perror("listen()\n");
         exit(1);
     }
 
+    //Convert passed point to the correct type
     struct socket_list * clients = (struct socket_list *)ptr;
 
+    //Loop looking for connections to accept
     for(;;)
     {
 		t = sizeof(remote);
