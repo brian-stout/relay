@@ -44,11 +44,12 @@ void *accept_connections(void *ptr);
 int main(void)
 {
 
-
+    //Initializing the pointers used for the socket linked list
     struct socket_list * clients = malloc(sizeof(struct socket_list));
     clients->next = NULL;
     clients->s = 0;
 
+    //Starting the write_message thread for the server
     pthread_t thread1;
     int iret1;
 
@@ -58,6 +59,7 @@ int main(void)
         exit(1);
     }
 
+    //Starting the accept_connections thread for the server
     pthread_t thread2;
     int iret2;
 
@@ -67,11 +69,15 @@ int main(void)
         exit(1);
     }
 
+    //Waits till the write_message thread is finished
     pthread_join(thread1, NULL);
+
+    //Forcibly exits the accept connections thread
     pthread_cancel(thread2);
-    //Make sure you get closes or shutdowns working here
+
+    //Runs through the linked lists and frees up memory
     deconstruct_socket_list(clients);
-    //Need to write a function that goes through the linked lists
+
     free(clients);
     pthread_exit(NULL);
 
